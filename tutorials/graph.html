@@ -1,55 +1,95 @@
+
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
 
-.chart rect {
-  fill: steelblue;
+.axis text {
+  font: 10px sans-serif;
 }
 
-.chart text {
-  fill: white;
-  font: 10px sans-serif;
-  text-anchor: end;
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.hexagon {
+  fill: none;
+  stroke: #000;
+  stroke-width: .5px;
 }
 
 </style>
-<svg class="chart"></svg>
-<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="d3.hexbin.min.js"></script>
 <script>
 
-var width = 420,
-    barHeight = 20;
+var margin = {top: 20, right: 20, bottom: 30, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
 
-var x = d3.scale.linear()
-    .range([0, width]);
+var randomX = d3.random.normal(width / 2, 80),
+    randomY = d3.random.normal(height / 2, 80),
+    points = d3.range(2000).map(function() { return [randomX(), randomY()]; });
 
-var chart = d3.select(".chart")
-    .attr("width", width);
+var color = d3.scale.linear()
+    .domain([0, 20])
+    .range(["lightgreen", "red"])
+    .interpolate(d3.interpolateLab);
 
-d3.tsv("data.txt", type, function(error, data) {
-  x.domain([0, d3.max(data, function(d) { return d.value; })]);
+var hexbin = d3.hexbin()
+    .size([width, height])
+    .radius(20);
 
-  chart.attr("height", barHeight * data.length);
+var x = d3.scale.identity()
+    .domain([0, width]);
 
-  var bar = chart.selectAll("g")
-      .data(data)
-    .enter().append("g")
-      .attr("transform", function(d, i) { return "translate(0," + i * barHeight + ")"; });
+var y = d3.scale.linear()
+    .domain([0, height])
+    .range([height, 0]);
 
-  bar.append("rect")
-      .attr("width", function(d) { return x(d.value); })
-      .attr("height", barHeight - 1);
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    .tickSize(6, -height);
 
-  bar.append("text")
-      .attr("x", function(d) { return x(d.value) - 3; })
-      .attr("y", barHeight / 2)
-      .attr("dy", ".35em")
-      .text(function(d) { return d.value; });
-});
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .tickSize(6, -width);
 
-function type(d) {
-  d.value = +d.value; // coerce to number
-  return d;
-}
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+svg.append("clipPath")
+    .attr("id", "clip")
+  .append("rect")
+    .attr("class", "mesh")
+    .attr("width", width)
+    .attr("height", height);
+
+svg.append("g")
+    .attr("clip-path", "url(#clip)")
+  .selectAll(".hexagon")
+    .data(hexbin(points))
+  .enter().append("path")
+    .attr("class", "hexagon")
+    .attr("d", hexbin.hexagon())
+    .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+    .style("fill", function(d) { return color(d.length); });
+
+svg.append("g")
+    .attr("class", "y axis")
+    .call(yAxis);
+
+svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis);
 
 </script>

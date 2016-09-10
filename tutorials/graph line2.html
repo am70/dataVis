@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<style type="text/css">
+		path {
+		    stroke-width: 2;
+		    fill: none;
+			opacity: 0.5;
+		}
+		
+		line {
+		    stroke: black;
+		}
+
+		text {
+		    font-family: Arial;
+		    font-size: 9pt;
+		}
+		
+	</style>
+<body>
+ <p>
+  <label for="repRate" 
+         style="display: inline-block; width: 240px; text-align: right">
+         Reproductive Rate = <span id="repRate-value">…</span>
+  </label>
+  <input type="range" min="0.0" max="2.0" step="0.01" id="repRate">
+</p>
+ <p>
+  <label for="efficiency" 
+         style="display: inline-block; width: 240px; text-align: right">
+         Search Efficiency = <span id="efficiency-value">…</span>
+  </label>
+  <input type="range" min="0.0" max="0.025" step="0.001" id="efficiency">
+</p>
+ <p>
+  <label for="carryCap" 
+         style="display: inline-block; width: 240px; text-align: right">
+         Carrying Capacity = <span id="carryCap-value">…</span>
+  </label>
+  <input type="range" min="50" max="1000" step="10" id="carryCap">
+</p>
+<!-- load the d3.js library -->    
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var w = 900,
+  h = 200,
+  marginY = 50,
+  marginX = 20,
+  y = d3.scale.linear().range([0 + marginX, h - marginX]),
+  x = d3.scale.linear().range([0 + marginY, w - marginY]);
+
+var vis = d3.select("body")
+  .append("svg:svg")
+  .attr("width", w)
+  .attr("height", h);
+
+var g = vis.append("svg:g")
+  .attr("transform", "translate(0, 200)");
+
+var line = d3.svg.line()
+  .x(function(d, i) {
+    return x(i);
+  })
+  .y(function(d) {
+    return -1 * y(d);
+  });
+
+ //declare starting values for the slider update functions
+updateR(0.6);
+updatea(0.005);
+updateK(500);
+
+//these are declared as global variables so they can hold the value from the functions when they 
+//are updated by the slider.
+var repHold = 0.6
+var efficiencyHold = 0.005
+var carryHold = 500
+
+d3.select("#repRate").on("input", function() {
+  updateR(+this.value);
+});
+d3.select("#efficiency").on("input", function() {
+  updatea(+this.value);
+});
+d3.select("#carryCap").on("input", function() {
+  updateK(+this.value);
+});
+
+
+function updateR(repRate) {
+  // adjust slider text
+  d3.select("#repRate-value").text(repRate);
+  d3.select("#repRate").property("value", repRate);
+
+  // Generate new Data
+ var hos = parHost(efficiencyHold,2,100,1,carryHold,repRate,"H");
+  var para = parHost(efficiencyHold,2,100,1,carryHold,repRate,"P");
+
+
+ //  Update the chart
+  drawChart(hos,para);
+  repHold = repRate
+}
+
+
+function updatea(efficiency) {
+  // adjust slider text
+  d3.select("#efficiency-value").text(efficiency);
+  d3.select("#efficiency").property("value", efficiency);
+
+  // Generate new Data
+  var hos = parHost(efficiency,2,100,1,carryHold,repHold,"H");
+  var para = parHost(efficiency,2,100,1,carryHold,repHold,"P");
+
+
+  // Update the chart
+  drawChart(hos,para);
+  efficiencyHold = efficiency
+}
+
+function updateK(carryCap) {
+  // adjust slider text
+  d3.select("#carryCap-value").text(carryCap);
+  d3.select("#carryCap").property("value", carryCap);
+
+  // Generate new Data
+ var hos = parHost(efficiencyHold,2,100,1,carryCap,repHold,"H");
+  var para = parHost(efficiencyHold,2,100,1,carryCap,repHold,"P");
+
+
+ //  Update the chart
+  drawChart(hos,para);
+  carryHold = carryCap
+}
+
+
+  // a = parasite search efficiency
+     // Pt = population of parasitoids
+     // Nt = population of hosts
+     // R = productive rate of hosts
+     // c= average number of eggs laid by parasitod
+     // K = carrying capacity
+
+function parHost (a,Pt,Nt,c,K,R,type){
+  //console.log(R);
+var i = 0;
+var hosts = [];
+var parasites = [];
+      do {
+        Nt1 = Nt * Math.exp(R * (1 - Nt / K) - a * Pt)
+        Pt1 = Nt * (1 - Math.exp(-a * Pt))
+		NtR = Math.round(Nt1)
+		PtR = Math.round(Pt1)
+        hosts.push(NtR++);
+		parasites.push(PtR++);
+        Nt = Nt1
+        Pt = Pt1
+        i++;
+  }
+  while (i < 50);
+  if(type=="H"){return hosts}if(type=="P"){return parasites};
+}
+      
+
+function drawChart(data,parasi) {
+  // Clear the old one
+  g.selectAll("*").remove();
+  
+  x.domain([0, data.length]);
+  y.domain([0, d3.max(data)]);
+  
+  g.append("svg:path").attr("d", line(data)).attr('stroke', 'blue');
+  g.append("svg:path").attr("d", line(parasi)).attr('stroke', 'red');
+
+  g.append("svg:line")
+    .attr("x1", x(0))
+    .attr("y1", -1 * y(0))
+    .attr("x2", x(w))
+    .attr("y2", -1 * y(0));
+
+  g.append("svg:line")
+    .attr("x1", x(0))
+    .attr("y1", -1 * y(0))
+    .attr("x2", x(0))
+    .attr("y2", -1 * y(d3.max(data)));
+
+
+  g.selectAll(".xLabel")
+    .data(x.ticks(5))
+    .enter().append("svg:text")
+    .attr("class", "xLabel")
+    .text(String)
+    .attr("x", function(d) {
+      return x(d);
+    })
+    .attr("y", 0)
+    .attr("text-anchor", "middle");
+
+  g.selectAll(".yLabel")
+    .data(y.ticks(4))
+    .enter().append("svg:text")
+    .attr("class", "yLabel")
+    .text(String)
+    .attr("x", 0)
+    .attr("y", function(d) {
+      return -1 * y(d);
+    })
+    .attr("text-anchor", "right")
+    .attr("dy", 4);
+
+  g.selectAll(".xTicks")
+    .data(x.ticks(5))
+    .enter().append("svg:line")
+    .attr("class", "xTicks")
+    .attr("x1", function(d) {
+      return x(d);
+    })
+    .attr("y1", -1 * y(0))
+    .attr("x2", function(d) {
+      return x(d);
+    })
+    .attr("y2", -1 * y(-0.3));
+
+  g.selectAll(".yTicks")
+    .data(y.ticks(4))
+    .enter().append("svg:line")
+    .attr("class", "yTicks")
+    .attr("y1", function(d) {
+      return -1 * y(d);
+    })
+    .attr("x1", x(-0.3))
+    .attr("y2", function(d) {
+      return -1 * y(d);
+    })
+    .attr("x2", x(0));
+}
+				
+			
+				
+</script>
+</body>

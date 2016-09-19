@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <style type="text/css">
-		path {
-		    stroke-width: 2;
+		path { 
+		    stroke-width: 1.5;
 		    fill: none;
 			opacity: 0.5;
 		}
 		
 		line {
 		    stroke: black;
+			
 		}
 
+		
 		text {
 		    font-family: Arial;
 		    font-size: 9pt;
@@ -18,39 +20,32 @@
 
 #parent {
 	 padding-left: 50px;
-	  padding-bottom: 30px;
 }
 
-.image {
+.slideFull {
     float: left;
-	 padding-left: 10px;
+top: 450px; 
+	 padding-left: 65px;
+}
+.slideHalf {
+top: 450px; 
+    float: left;
+	 padding-left: 75px;
+	 
 }
 		
 	</style>
 <body>
 
- <p>
-  <label for="carryCap" 
-         style="display: inline-block; width: 240px; text-align: right">
-         Carrying Capacity = <span id="carryCap-value">…</span>
-  </label>
-  <input type="range" min="50" max="1000" step="10" id="carryCap">
-</p>
-<p>
-  <label for="eggs" 
-         style="display: inline-block; width: 240px; text-align: right">
-         Eggs laid by parasitoid = <span id="eggs-value">…</span>
-  </label>
-  <input type="range" min="0" max="20" step="1" id="eggs">
-</p>
-
 
 <div id="parent">
-    <div class="image", div id="sliderRep"></div>
-    <div class="image",div id="slidera"></div>
+    <div class="slideFull", div id="sliderRep"></div>
+    <div class="slideFull",div id="slider_a"></div>
+	<div class="slideFull",div id="sliderK"></div>
+	<div class="slideHalf",div id="slider_c"></div>
+	<div class="slide",div id="lGraph"></div>
     <div style="clear:both"></div>
 </div>
-
 
 
 <!-- load the d3.js library -->    
@@ -62,19 +57,19 @@
 <script>
 
 var w = 900,
-  h = 200,
-  marginY = 50,
+  h = 275,
+  marginY = 30,
   marginX = 20,
   y = d3.scale.linear().range([0 + marginX, h - marginX]),
   x = d3.scale.linear().range([0 + marginY, w - marginY]);
 
-var vis = d3.select("body")
+var vis = d3.select("#lGraph")
   .append("svg:svg")
   .attr("width", w)
   .attr("height", h);
 
 var g = vis.append("svg:g")
-  .attr("transform", "translate(0, 200)");
+  .attr("transform", "translate(30, 275)");
 
 var line = d3.svg.line()
   .x(function(d, i) {
@@ -97,61 +92,32 @@ var efficiencyHold = 0.005
 var carryHold = 500
 var eggHold = 1
 
-d3.select("#repRate").on("input", function() {
-  updateR(+this.value);
-});
-d3.select("#efficiency").on("input", function() {
-  updatea(+this.value);
-});
-d3.select("#carryCap").on("input", function() {
-  updateK(+this.value);
-});
-d3.select("#eggs").on("input", function() {
-  updateC(+this.value);
-});
-
-
 
 function updateR(repRate) {
-  // adjust slider text
-  d3.select("#repRate-value").text(repRate);
-  d3.select("#repRate").property("value", repRate);
-
-  // Generate new Data
+// Generate new Data
  var hos = parHost(efficiencyHold,2,100,eggHold,carryHold,repRate,"H");
   var para = parHost(efficiencyHold,2,100,eggHold,carryHold,repRate,"P");
 
-
- //  Update the chart
+  //  Update the chart
   drawChart(hos,para);
   repHold = repRate
 }
 
 
 function updatea(efficiency) {
-  // adjust slider text
-  d3.select("#efficiency-value").text(efficiency);
-  d3.select("#efficiency").property("value", efficiency);
-
   // Generate new Data
   var hos = parHost(efficiency,2,100,eggHold,carryHold,repHold,"H");
   var para = parHost(efficiency,2,100,eggHold,carryHold,repHold,"P");
-
-
+  
   // Update the chart
   drawChart(hos,para);
   efficiencyHold = efficiency
 }
 
 function updateK(carryCap) {
-  // adjust slider text
-  d3.select("#carryCap-value").text(carryCap);
-  d3.select("#carryCap").property("value", carryCap);
-
   // Generate new Data
  var hos = parHost(efficiencyHold,2,100,eggHold,carryCap,repHold,"H");
   var para = parHost(efficiencyHold,2,100,eggHold,carryCap,repHold,"P");
-
 
  //  Update the chart
   drawChart(hos,para);
@@ -160,10 +126,6 @@ function updateK(carryCap) {
 
 
 function updateC(eggs) {
-  // adjust slider text
-  d3.select("#eggs-value").text(eggs);
-  d3.select("#eggs").property("value", eggs);
-
   // Generate new Data
  var hos = parHost(efficiencyHold,2,100,eggs,carryHold,repHold,"H");
   var para = parHost(efficiencyHold,2,100,eggs,carryHold,repHold,"P");
@@ -288,7 +250,7 @@ $("#sliderRep").roundSlider({
     value: 1,
 	startAngle: 90,
 	handleShape: "dot",
-	    beforeCreate: "traceEvent",
+	beforeCreate: "traceEvent",
     create: "traceEvent",
     start: "traceEvent",
     stop: "traceEvent",
@@ -305,7 +267,7 @@ function traceEvent(e) {
 }
 
 
-$("#slidera").roundSlider({
+$("#slider_a").roundSlider({
     radius: 70,
     sliderType: "min-range",
 	handleSize: "+14",
@@ -330,6 +292,63 @@ function sliderVala(args) {
 }
 function traceEvent2(e) {
    updatea(+e.value);
+}
+
+
+
+$("#sliderK").roundSlider({
+    radius: 70,
+    sliderType: "min-range",
+	handleSize: "+14",
+	width: 4,
+	min: 0,
+    max: 1000,
+    step: 1,
+    value: 500,
+	startAngle: 90,
+	handleShape: "dot",
+	    beforeCreate: "traceEvent3",
+    create: "traceEvent3",
+    start: "traceEvent3",
+    stop: "traceEvent3",
+    change: "traceEvent3",
+    drag: "traceEvent3",
+	tooltipFormat: "sliderValK"
+	
+});
+function sliderValK(args) {
+    return "K = " + args.value;
+}
+function traceEvent3(e) {
+   updateK(+e.value);
+}
+
+
+$("#slider_c").roundSlider({
+    radius: 70,
+    sliderType: "min-range",
+	handleSize: "+14",
+	circleShape: "half-right",
+	width: 4,
+	min: 0,
+    max: 5,
+    step: 1,
+    value: 1,
+	handleShape: "dot",
+	    beforeCreate: "traceEvent4",
+    create: "traceEvent4",
+    start: "traceEvent4",
+    stop: "traceEvent4",
+    change: "traceEvent4",
+    drag: "traceEvent4",
+	tooltipFormat: "sliderValC"
+	
+});
+function sliderValC(args) {
+    return "c = " + args.value;
+}
+function traceEvent4(e) {
+   updateC(+e.value);
 }
 
 

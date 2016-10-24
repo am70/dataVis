@@ -131,3 +131,67 @@ matchWords<-c("\\bfeeling sick\\b","\\bfeeling ill\\b","\\bi'm sick\\b","\\bi'm 
 tweets.df2x<-NULL
   tweetPlot(matchWords)
 
+  
+  
+  
+  
+  
+  
+  
+  ####timeline plots
+  library(ggplot2)
+  
+  bd<-read.csv("C:\\dataVis\\google data\\multiTimelineBD.csv",sep=",")
+  colnames(bd)<-c("date","count")
+
+  bd$timeLine<-c(1:nrow(bd))
+  
+  ggplot() +
+    geom_line(aes(x = as.numeric(timeLine),y = count,xend = timeLine),data=bd, col = "blue",lwd=1,alpha=0.5) +
+    geom_point(aes(x = as.numeric(timeLine),y = count),data=bd,alpha=0.4) +
+    ylab("Interest Over Time")+
+    xlab("Year")+
+    scale_x_continuous(breaks = c(9,62,114,168,218),labels = c("2012","2013","2014","2015","2016")) +
+    theme_bw()
+
+
+  bd<-read.csv("C:\\dataVis\\google data\\multiTimelineSpark.csv",sep=",")
+  colnames(bd)<-c("date","count")
+  
+  bd$timeLine<-c(1:nrow(bd))
+  
+  ggplot() +
+    geom_line(aes(x = as.numeric(timeLine),y = count,xend = timeLine),data=bd, col = "blue",lwd=1,alpha=0.5) +
+    geom_point(aes(x = as.numeric(timeLine),y = count),data=bd,alpha=0.4) +
+    ylab("Interest Over Time")+
+    xlab("Year")+
+    scale_x_continuous(breaks = c(9,62,114,168,218),labels = c("2012","2013","2014","2015","2016")) +
+    theme_bw()
+  
+  
+  
+  
+  ###########ZIKA -timeline plots
+  
+  zika<-read.csv("C:\\dataVis\\google data\\lyme.csv",sep=",",head=F)
+  colnames(zika)<-c("date","themex","intensity")
+  aggDat<-aggregate(zika$intensity~zika$theme,FUN=sum)
+  colnames(aggDat)<-c("themex","intensity")
+  #top<-tail(aggDat[order(aggDat$intensity),],2) 
+  top<-aggDat[sample(aggDat$themex,50,replace=T),] 
+  
+  results<-merge(top,zika,by="themex")
+  results<-results[order(results$date),]
+  results$timeLine<-c(1:nrow(results))
+  
+  results$date2<-as.Date(as.character(results$date), "%Y%m%d")
+  startDate<-as.Date("20130101","%Y%m%d")
+  results$date2<-results$date2-startDate
+  
+  
+  ggplot() +
+    geom_point(aes(x = (themex),y = as.numeric(date2)),data=results, col = "blue",alpha=0.1,size=sqrt(1+results$intensity.y)) +
+   theme(axis.text.x=element_text(angle = -90, hjust = 0))+
+    scale_y_continuous(breaks = c(1,373,731,1096),labels = c("2013","2014","2015","2016"))
+    
+  

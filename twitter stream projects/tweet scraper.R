@@ -1,4 +1,7 @@
 library(streamR)
+library(ggplot2)
+library(grid)
+library(maps)
 # In addition, we need the "ROAuth"-package to establish an 
 # authentification.
 library(ROAuth)
@@ -29,11 +32,11 @@ load("my_oauth.Rdata")
 
 
 file = "tweets.json"
-track = NULL
+track = "flu vaccination"
 follow = NULL
-loc = c(-125, 30, -114, 42)
+loc = c(-5, 49, -0.49, 60)
 lang = NULL
-minutes = 5
+minutes = 0.1
 time = 60*minutes
 tweets = NULL
 filterStream(file.name = file, 
@@ -47,86 +50,84 @@ filterStream(file.name = file,
              verbose = TRUE)
 
 
-tweets.df <- parseTweets(file)
+
 # Now we can inspect the table and save it.
-View(tweets.df)
-save(file="tweetsDF.RDATA", tweets.df)
 
 
 
-library(stringr)
-tweets.df$hashtags <- str_extract(tweets.df$text, "#[:alnum:]+")
-
-tweets.df$hashtags <- as.factor(tweets.df$hashtags)
-summary(tweets.df$hashtags)
-
-tweets.df$full_name <- as.factor(tweets.df$full_name)
-summary(tweets.df$full_name)
-
-
-  library(plyr)
-sel <- count(tweets.df$full_name)$x[count(tweets.df$full_name)$freq>100]
-sel <- tweets.df$full_name %in% sel
-test.df <- tweets.df[sel,]
-
-test.df$full_name <- droplevels(test.df$full_name)
-
-fit <- lm(followers_count ~ full_name, data=test.df)
-summary(fit)
-
+tweetPlot<-function(toMatch){
+  buff<-0
+  while(buff<10000){
+    buff=buff+1
+    print(buff)
   
-fit2 <- lm(followers_count ~ full_name + friends_count, data=test.df)
-summary(fit2)
+  load("my_oauth.Rdata")
+  
+  filterStream(file.name="tweets_rstats.json",language="en",
+               locations = c(-175, -59, 175, 83), timeout = 10, oauth=my_oauth)
+  
+  tweets.df <- parseTweets("tweets_rstats.json")
+  
+  tweets.df2<-tweets.df[grep(paste(toMatch,collapse="|"),tweets.df$text),]
+  tweets.df2x<-rbind(tweets.df2,tweets.df2x)
+  
+print(nrow(tweets.df2x))
+  
+  write.table(NULL,"C:\\Users\\Aaron\\Documents\\tweets_rstats.json")
+  write.table(tweets.df2x,"C:\\Users\\Aaron\\Documents\\tweetResults.json")
+  
+  map.data <- map_data('world')
+  
+  # We only need the long and lat values from the data. 
+  # These are put in a new object.
+  points <- data.frame(x = as.numeric(tweets.df2x$place_lon), 
+                       y = as.numeric(tweets.df2x$place_lat))
+  # This line is needed for the second plot, when hashtags are added.
+  points$hashtags <- tweets.df$hashtags
+  # The next lines are just used to remove points that are not specified or 
+  # are incidental too far a way from California.
+  points[!is.na(tweets.df2x$lon), "x"] <- as.numeric(tweets.df2x$lon)[!is.na(tweets.df2x$lon)]
+  points[!is.na(tweets.df2x$lat), "y"] <- as.numeric(tweets.df2x$lat)[!is.na(tweets.df2x$lat)]
+  #points <- points[(points$y > 25 & points$y < 42), ]
+  #points <- points[points$x < -114,]
+  # The following code creates the graphic.
+  mapPlot <- ggplot(map.data) + # ggplot is the basic plotting function used.
+    # The following lines define the map-areas.
+    geom_map(aes(map_id = region), 
+             map = map.data, 
+             fill = "white", 
+             color = "grey20", 
+             size = 0.25) +  
+    expand_limits(x = map.data$long, 
+                  y = map.data$lat) + 
+    # The following parameters could be altered to insert axes, title, etc.
+    theme(axis.line = element_blank(), 
+          axis.text = element_blank(), 
+          axis.ticks = element_blank(), 
+          axis.title = element_blank(), 
+          panel.background = element_blank(), 
+          panel.border = element_blank(), 
+          panel.grid.major = element_blank(), 
+          plot.background = element_blank(), 
+          plot.margin = unit(0 * c(-1.5, -1.5, -1.5, -1.5), "lines")) + 
+    # The next line plots points for each tweet. Size, transparency (alpha) 
+    # and color could be altered.
+    geom_point(data = points, 
+               aes(x = x, y = y), 
+               size = 2, 
+               alpha=0.2,
+               color = "red")
+  
+  
+  print(mapPlot)
+  }
+}
 
 
+matchWords<-c("\\bfeeling sick\\b","\\bfeeling ill\\b","\\bi'm sick\\b","\\bi'm ill\\b","\\bthe flu\\b",
+                     "\\bhave a cold\\b","\\bflu\\b","\\bfeel sick\\b","\\bfeel ill\\b","\\bfeel unwell\\b","\\bhave a cold\\b",
+                     "\\bhave a virus\\b",ignore.case=T)
 
+tweets.df2x<-NULL
+  tweetPlot(matchWords)
 
-
-# Two additional packages are needed:
-library(ggplot2)
-library(grid)
-library(maps)
-# Create an object containing the boundaries of California as 
-# longuitude and lattitude.
-map.data <- map_data("state", region=c("california"))
-# We only need the long and lat values from the data. 
-# These are put in a new object.
-points <- data.frame(x = as.numeric(tweets.df$place_lon), 
-                     y = as.numeric(tweets.df$place_lat))
-# This line is needed for the second plot, when hashtags are added.
-points$hashtags <- tweets.df$hashtags
-# The next lines are just used to remove points that are not specified or 
-# are incidental too far a way from California.
-points[!is.na(tweets.df$lon), "x"] <- as.numeric(tweets.df$lon)[!is.na(tweets.df$lon)]
-points[!is.na(tweets.df$lat), "y"] <- as.numeric(tweets.df$lat)[!is.na(tweets.df$lat)]
-points <- points[(points$y > 25 & points$y < 42), ]
-points <- points[points$x < -114,]
-# The following code creates the graphic.
-mapPlot <- ggplot(map.data) + # ggplot is the basic plotting function used.
-  # The following lines define the map-areas.
-  geom_map(aes(map_id = region), 
-           map = map.data, 
-           fill = "white", 
-           color = "grey20", 
-           size = 0.25) +  
-  expand_limits(x = map.data$long, 
-                y = map.data$lat) + 
-  # The following parameters could be altered to insert axes, title, etc.
-  theme(axis.line = element_blank(), 
-        axis.text = element_blank(), 
-        axis.ticks = element_blank(), 
-        axis.title = element_blank(), 
-        panel.background = element_blank(), 
-        panel.border = element_blank(), 
-        panel.grid.major = element_blank(), 
-        plot.background = element_blank(), 
-        plot.margin = unit(0 * c(-1.5, -1.5, -1.5, -1.5), "lines")) + 
-  # The next line plots points for each tweet. Size, transparency (alpha) 
-  # and color could be altered.
-  geom_point(data = points, 
-             aes(x = x, y = y), 
-             size = 2, 
-             alpha = 1/20, 
-             color = "steelblue")
-
-mapPlot # This command plots the object.

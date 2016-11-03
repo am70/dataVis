@@ -64,9 +64,10 @@ tweetPlot<-function(toMatch){
   load("my_oauth.Rdata")
   
   filterStream(file.name="tweets_rstats.json",language="en",
-               locations = c(-175, -59, 175, 83), timeout = 10, oauth=my_oauth)
+               locations = c(-175, -59, 175, 83), timeout = 30, oauth=my_oauth)
   
   tweets.df <- parseTweets("tweets_rstats.json")
+  
   
   tweets.df2<-tweets.df[grep(paste(toMatch,collapse="|"),tweets.df$text),]
   tweets.df2x<-rbind(tweets.df2,tweets.df2x)
@@ -120,6 +121,63 @@ print(nrow(tweets.df2x))
   
   
   print(mapPlot)
+  
+  png(filename="C:\\Users\\Aaron\\Documents\\mapres.png",width = 1920, height = 1080)
+  plot(mapPlot)
+  dev.off()
+  
+  
+tweets.df3x<-subset(tweets.df2x,country=="United Kingdom")
+  
+  map.data <- map_data('world','uk')
+  
+  # We only need the long and lat values from the data. 
+  # These are put in a new object.
+  points <- data.frame(x = as.numeric(tweets.df3x$place_lon), 
+                       y = as.numeric(tweets.df3x$place_lat))
+  # This line is needed for the second plot, when hashtags are added.
+  points$hashtags <- tweets.df$hashtags
+  # The next lines are just used to remove points that are not specified or 
+  # are incidental too far a way from California.
+  points[!is.na(tweets.df3x$lon), "x"] <- as.numeric(tweets.df3x$lon)[!is.na(tweets.df3x$lon)]
+  points[!is.na(tweets.df3x$lat), "y"] <- as.numeric(tweets.df3x$lat)[!is.na(tweets.df3x$lat)]
+  #points <- points[(points$y > 25 & points$y < 42), ]
+  #points <- points[points$x < -114,]
+  # The following code creates the graphic.
+  mapPlot <- ggplot(map.data) + # ggplot is the basic plotting function used.
+    # The following lines define the map-areas.
+    geom_map(aes(map_id = region), 
+             map = map.data, 
+             fill = "white", 
+             color = "grey20", 
+             size = 0.25) +  
+    expand_limits(x = map.data$long, 
+                  y = map.data$lat) + 
+    # The following parameters could be altered to insert axes, title, etc.
+    theme(axis.line = element_blank(), 
+          axis.text = element_blank(), 
+          axis.ticks = element_blank(), 
+          axis.title = element_blank(), 
+          panel.background = element_blank(), 
+          panel.border = element_blank(), 
+          panel.grid.major = element_blank(), 
+          plot.background = element_blank(), 
+          plot.margin = unit(0 * c(-1.5, -1.5, -1.5, -1.5), "lines")) + 
+    # The next line plots points for each tweet. Size, transparency (alpha) 
+    # and color could be altered.
+    geom_point(data = points, 
+               aes(x = x, y = y), 
+               size = 3, 
+               alpha=0.5,
+               color = "red")
+  
+  
+  print(mapPlot)
+  
+  png(filename="C:\\Users\\Aaron\\Documents\\mapUK2.png",width = 1920, height = 1080)
+  plot(mapPlot)
+  dev.off()
+  
   }
 }
 
@@ -195,3 +253,7 @@ tweets.df2x<-NULL
     scale_y_continuous(breaks = c(1,373,731,1096),labels = c("2013","2014","2015","2016"))
     
   
+  
+  ###plot world and tweet data
+  
+  dat<-read.csv("C:\\Users\\Aaron\\Documents")
